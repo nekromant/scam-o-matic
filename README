@@ -1,0 +1,18 @@
+Well, I've been scammed. You might have heard of the SD card scam, when you buy a card, and it reports to be bigger, than it actually is, and whatever you write beyond the boundary of the really available space gets lost. 
+I ordered a bunch of 5 microSD cards, 4GiB each, and they were a pure scam with about 115 MiB instead of 4 GiB.
+Luckily, I managed to get my money back, via opening a dispute and later a claim (Scammers didn't want to give the money back, did they?), but the cards still remained here. 
+To test such shitty cards there exist 2 tools: h2testw and f3. First for windows, second for linux. They figure out the real capacity for you. I didn't like them, because they took ages to scan one 4 GiB card.  And, they operated upon a upon a filesystem, that I didn't like as well. So I wrote my own tool. 
+It's dumb as hell, and was created while f3 was still scanning one card. And it's a lot faster. Meet 'scam-o-matic'. 
+It writes some preudorandom data to the card, until it detects something bad. Usually that happens when we reach the boundary of 'good', somewhat 'reliable' memory. Then it double-checks the region, and if everything is fine (e.g. no mismatches between first and second pass) it creates a partition table for you, with one partition that covers only working area of the card. 
+Now just format it, alter the type with cfdisk, and make use of it. 
+
+COMPILATION: gcc -o scam-o-matic scam-o-matic.c
+  
+USAGE: scam-o-matic /dev/sdX
+/dev/sdX - should be the path to the device node of the card. 
+e.g. /dev/sdf
+
+The program will prompt you for everything else. Sometimes, one pass gives some unreliable results, 
+that screw, when you verify them. A second shot gives you some better ones. 
+Have fun. 
+
