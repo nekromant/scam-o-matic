@@ -93,14 +93,14 @@ int main(int argc, char *argv[])
   ioctl(fd, BLKSSZGET, &blksize);
   printf("Device reports to be %llu bytes long.\n", bsize);
   printf("Sectors are presumably %u bytes each.\n", blksize);
-  printf("!!!WARNING!!! Last chance to stop. Are you sure? If so - type YES\n", dev);
+  printf("!!!WARNING!!! Last chance to stop. Are you sure you want to go further?\n If so - type YES, anything else or ctrl+c either\n", dev);
   gets(buf);
   if (strcmp("YES",buf)!=0)
   {
     printf("Not doing anything\n");
     return 1;
   }
-  printf("Starting a desructive surface test\n", dev);
+  printf("Starting a destructive surface test\n", dev);
   prandom_reset();
   int i;
   uint64_t pos=0;
