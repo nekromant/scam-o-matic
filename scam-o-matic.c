@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <linux/fs.h>
 #include <sys/stat.h>
+#include <string.h>
 #include <fcntl.h>
 
 /* shamelessly ripped from linux kernel */
