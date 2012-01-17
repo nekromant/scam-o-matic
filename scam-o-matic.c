@@ -68,6 +68,7 @@ int main(int argc, char *argv[])
   {
     printf("Salvage a scammed device for usable space\n");
     printf("Usage: %s device\n", argv[0]);
+	printf("(c) Necromant 2011-2012\n");
     exit(1);
   }
   dev = argv[1];
