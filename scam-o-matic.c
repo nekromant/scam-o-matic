@@ -84,8 +84,8 @@ int main(int argc, char *argv[])
   printf("!!!WARNING!!! I will now destroy all data on the device %s\n", dev);
   printf("!!!WARNING!!! If you are ok with that - type OK & press enter\n");
   
-  gets(buf);
-  if (strcmp("OK",buf)!=0)
+  fgets(buf, sizeof(buf), stdin);
+  if (strcmp("OK\n",buf)!=0)
   {
     printf("Not doing anything\n");
     return 1;
@@ -96,8 +96,8 @@ int main(int argc, char *argv[])
   printf("Device reports to be %llu bytes long.\n", bsize);
   printf("Sectors are presumably %u bytes each.\n", blksize);
   printf("!!!WARNING!!! Last chance to stop. Are you sure you want to go further?\n If so - type YES, anything else or ctrl+c either\n", dev);
-  gets(buf);
-  if (strcmp("YES",buf)!=0)
+  fgets(buf, sizeof(buf), stdin);
+  if (strcmp("YES\n",buf)!=0)
   {
     printf("Not doing anything\n");
     return 1;
@@ -175,8 +175,8 @@ int main(int argc, char *argv[])
     printf("Would you like me to run fdisk and\n");
     printf("Automagically create a partition, that will use only\n");
     printf("the really avaliable space? (YEP/NOPE)");
-    gets(buf);
-    if (strcmp(buf,"YEP")==0)
+    fgets(buf, sizeof(buf), stdin);
+    if (strcmp(buf,"YEP\n")==0)
     {
       int sectcount = limit/blksize-2048;
       printf("Creating partition with %d sectors. Command line below\n",sectcount);
