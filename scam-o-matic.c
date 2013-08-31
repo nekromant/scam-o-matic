@@ -51,11 +51,11 @@ int check_data(uint32_t* a, uint32_t* b, size_t size)
     if (a[i]!=b[i])
     {
       printf("\n\nOoops: 0x%X vs 0x%X\n\n", a[i],b[i]);
-      return i*4;
+      return i;
     }
     i++;
   }
-  return 0;
+  return -1;
 }
 
 int main(int argc, char *argv[])
@@ -123,7 +123,7 @@ int main(int argc, char *argv[])
    ioctl(fd,BLKFLSBUF);
    pread(fd, reader_buf, k*blksize, pos);
    i = check_data(reader_buf,writer_buf,k*blksize);
-   if (i)
+   if (i >= 0)
    {
      printf("\r\nMismatch at %llu detected\n",pos+i*4);
      scam=1;
@@ -148,7 +148,7 @@ int main(int argc, char *argv[])
        prand_fill_buffer(writer_buf,k*blksize);
        pread(fd, reader_buf, k*blksize, pos);
        i = check_data(reader_buf,writer_buf,k*blksize);
-	if (i && (pos+i*4 < limit))
+	if (i >= 0 && (pos+i*4 < limit))
 	{
 	  printf("\r\nMismatch at %llu detected\n",pos+i*4);
 	  scam=2;
