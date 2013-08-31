@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include <linux/fs.h>
 #include <sys/stat.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
 #include <string.h>
 #include <fcntl.h>
 
@@ -95,14 +97,14 @@ int main(int argc, char *argv[])
   ioctl(fd, BLKSSZGET, &blksize);
   printf("Device reports to be %llu bytes long.\n", bsize);
   printf("Sectors are presumably %u bytes each.\n", blksize);
-  printf("!!!WARNING!!! Last chance to stop. Are you sure you want to go further?\n If so - type YES, anything else or ctrl+c either\n", dev);
+  printf("!!!WARNING!!! Last chance to stop. Are you sure you want to go further?\n If so - type YES, anything else or ctrl+c either\n");
   fgets(buf, sizeof(buf), stdin);
   if (strcmp("YES\n",buf)!=0)
   {
     printf("Not doing anything\n");
     return 1;
   }
-  printf("Starting a destructive surface test\n", dev);
+  printf("Starting a destructive surface test\n");
   prandom_reset();
   int i;
   uint64_t pos=0;
@@ -161,7 +163,7 @@ int main(int argc, char *argv[])
        printf("See if it gets better.");
      }else
      {
-       printf("The region looks fine. That's %d%% of reported capacity.\n",limit/bsize*100);
+       printf("The region looks fine. That's %d%% of reported capacity.\n", (int)(limit/bsize*100));
      }
    } else
    {
@@ -188,6 +190,7 @@ int main(int argc, char *argv[])
       printf("Some rights reserved. (c) Necromant 2011\n");
     }
    }
-   
+
+   return 0;
 }
 
