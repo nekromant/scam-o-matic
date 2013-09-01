@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include <linux/fs.h>
 #include <sys/stat.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
 #include <string.h>
 #include <fcntl.h>
 
@@ -49,11 +51,11 @@ int check_data(uint32_t* a, uint32_t* b, size_t size)
     if (a[i]!=b[i])
     {
       printf("\n\nOoops: 0x%X vs 0x%X\n\n", a[i],b[i]);
-      return i*4;
+      return i;
     }
     i++;
   }
-  return 0;
+  return -1;
 }
 
 int main(int argc, char *argv[])
@@ -84,8 +86,8 @@ int main(int argc, char *argv[])
   printf("!!!WARNING!!! I will now destroy all data on the device %s\n", dev);
   printf("!!!WARNING!!! If you are ok with that - type OK & press enter\n");
   
-  gets(buf);
-  if (strcmp("OK",buf)!=0)
+  fgets(buf, sizeof(buf), stdin);
+  if (strcmp("OK\n",buf)!=0)
   {
     printf("Not doing anything\n");
     return 1;
@@ -95,14 +97,14 @@ int main(int argc, char *argv[])
   ioctl(fd, BLKSSZGET, &blksize);
   printf("Device reports to be %llu bytes long.\n", bsize);
   printf("Sectors are presumably %u bytes each.\n", blksize);
-  printf("!!!WARNING!!! Last chance to stop. Are you sure you want to go further?\n If so - type YES, anything else or ctrl+c either\n", dev);
-  gets(buf);
-  if (strcmp("YES",buf)!=0)
+  printf("!!!WARNING!!! Last chance to stop. Are you sure you want to go further?\n If so - type YES, anything else or ctrl+c either\n");
+  fgets(buf, sizeof(buf), stdin);
+  if (strcmp("YES\n",buf)!=0)
   {
     printf("Not doing anything\n");
     return 1;
   }
-  printf("Starting a destructive surface test\n", dev);
+  printf("Starting a destructive surface test\n");
   prandom_reset();
   int i;
   uint64_t pos=0;
@@ -121,7 +123,7 @@ int main(int argc, char *argv[])
    ioctl(fd,BLKFLSBUF);
    pread(fd, reader_buf, k*blksize, pos);
    i = check_data(reader_buf,writer_buf,k*blksize);
-   if (i)
+   if (i >= 0)
    {
      printf("\r\nMismatch at %llu detected\n",pos+i*4);
      scam=1;
@@ -146,7 +148,7 @@ int main(int argc, char *argv[])
        prand_fill_buffer(writer_buf,k*blksize);
        pread(fd, reader_buf, k*blksize, pos);
        i = check_data(reader_buf,writer_buf,k*blksize);
-	if (i && (pos+i*4 < limit))
+	if (i >= 0 && (pos+i*4 < limit))
 	{
 	  printf("\r\nMismatch at %llu detected\n",pos+i*4);
 	  scam=2;
@@ -161,7 +163,7 @@ int main(int argc, char *argv[])
        printf("See if it gets better.");
      }else
      {
-       printf("The region looks fine. That's %d%% of reported capacity.\n",limit/bsize*100);
+       printf("The region looks fine. That's %d%% of reported capacity.\n", (int)(limit/bsize*100));
      }
    } else
    {
@@ -175,8 +177,8 @@ int main(int argc, char *argv[])
     printf("Would you like me to run fdisk and\n");
     printf("Automagically create a partition, that will use only\n");
     printf("the really avaliable space? (YEP/NOPE)");
-    gets(buf);
-    if (strcmp(buf,"YEP")==0)
+    fgets(buf, sizeof(buf), stdin);
+    if (strcmp(buf,"YEP\n")==0)
     {
       int sectcount = limit/blksize-2048;
       printf("Creating partition with %d sectors. Command line below\n",sectcount);
@@ -188,6 +190,7 @@ int main(int argc, char *argv[])
       printf("Some rights reserved. (c) Necromant 2011\n");
     }
    }
-   
+
+   return 0;
 }
 
