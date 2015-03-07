@@ -1,12 +1,28 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <linux/fs.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <string.h>
 #include <fcntl.h>
+
+//#define MACOSX
+
+/*
+    http://www.opensource.apple.com/source/xnu/xnu-1456.1.26/bsd/sys/disk.h
+*/
+#ifdef MACOSX
+#include <sys/disk.h>
+#define BLKGET64 DKIOCGETBLOCKCOUNT
+#define BLKSECSZ DKIOCGETBLOCKSIZE
+#define FLUSHCACHE DKIOCSYNCHRONIZECACHE
+#else
+#include <linux/fs.h>
+#define BLKGET64 BLKGETSIZE64
+#define BLKSECSZ BLKSSZGET
+#define FLUSHCACHE BLKFLSBUF
+#endif // #ifdef MACOSX
 
 /* shamelessly ripped from linux kernel */
 
@@ -93,8 +109,8 @@ int main(int argc, char *argv[])
     return 1;
   }
   printf("Rock'n'roll, then!\n");
-  ioctl(fd, BLKGETSIZE64, &bsize);
-  ioctl(fd, BLKSSZGET, &blksize);
+  ioctl(fd, BLKGET64, &bsize);
+  ioctl(fd, BLKSECSZ, &blksize);
   printf("Device reports to be %llu bytes long.\n", bsize);
   printf("Sectors are presumably %u bytes each.\n", blksize);
   printf("!!!WARNING!!! Last chance to stop. Are you sure you want to go further?\n If so - type YES, anything else or ctrl+c either\n");
@@ -120,7 +136,7 @@ int main(int argc, char *argv[])
    prand_fill_buffer(writer_buf,k*blksize);
    pwrite(fd, writer_buf, k*blksize, pos);
    //fsync(fd);
-   ioctl(fd,BLKFLSBUF);
+   ioctl(fd,FLUSHCACHE);
    pread(fd, reader_buf, k*blksize, pos);
    i = check_data(reader_buf,writer_buf,k*blksize);
    if (i >= 0)
