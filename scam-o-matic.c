@@ -64,8 +64,7 @@ int check_data(uint32_t* a, uint32_t* b, size_t size)
 
     while (i < size/4)
     {
-        //     printf("0x%X vs 0x%X\r", a[i],b[i]);
-        fflush(stdout);
+        //     printf("0x%X vs 0x%X\r", a[i],b[i]); fflush(stdout);
         if (a[i] != b[i])
         {
             printf("\n\nOoops: 0x%X vs 0x%X\n\n", a[i],b[i]);
