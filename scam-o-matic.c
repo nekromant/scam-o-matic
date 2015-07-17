@@ -146,10 +146,7 @@ int main(int argc, char *argv[])
 
     while (pos < bsize)
     {
-        uint32_t cur_step_size = step_size;
-
-        if (bsize - pos < step_size)
-            cur_step_size = bsize - pos;
+        const uint32_t cur_step_size = (bsize - pos >= step_size) ? step_size : bsize - pos;
 
         printf("\rTesting at position: %" PRIu64 " (%" PRIu64 "%%)\t\t", pos, pos*100/bsize);
         fflush(stdout);
