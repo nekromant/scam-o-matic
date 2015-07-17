@@ -147,21 +147,26 @@ int main(int argc, char *argv[])
 
     while (pos < bsize)
     {
+        uint32_t cur_step_size = step_size;
+
+        if (bsize - pos < step_size)
+            cur_step_size = bsize - pos;
+
         printf("\rTesting at position: %" PRIu64 " (%" PRIu64 "%%)\t\t", pos, pos*100/bsize);
         fflush(stdout);
-        prand_fill_buffer(writer_buf, step_size);
-        pwrite(fd, writer_buf, step_size, pos);
+        prand_fill_buffer(writer_buf, cur_step_size);
+        pwrite(fd, writer_buf, cur_step_size, pos);
         //fsync(fd);
         ioctl(fd, FLUSHCACHE);
-        pread(fd, reader_buf, step_size, pos);
-        i = check_data(reader_buf, writer_buf, step_size);
+        pread(fd, reader_buf, cur_step_size, pos);
+        i = check_data(reader_buf, writer_buf, cur_step_size);
         if (i >= 0)
         {
             printf("\r\nMismatch at %" PRIu64 " detected\n",pos+i*4);
             scam=1;
             break;
         }
-        pos += step_size;
+        pos += cur_step_size;
         //write(fd, writer_buf, blksize);
     }
     if (scam)
