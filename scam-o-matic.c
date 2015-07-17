@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
   
   while (pos < bsize ) 
   {
-   printf("\rTesting at position: %" PRIu64 "\t\t", pos );
+   printf("\rTesting at position: %" PRIu64 " (%" PRIu64 "%%)\t\t", pos, pos*100/bsize);
    fflush(stdout);
    prand_fill_buffer(writer_buf,k*blksize);
    pwrite(fd, writer_buf, k*blksize, pos);
