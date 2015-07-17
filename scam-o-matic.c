@@ -176,7 +176,7 @@ int main(int argc, char *argv[])
         prandom_reset();
         while (pos<limit)
         {
-            printf("\rDouble checking at position: %" PRIu64 "/%" PRIu64 "\t\t", pos,limit );
+            printf("\rDouble checking at position: %" PRIu64 "/%" PRIu64 " (%" PRIu64 "%%)\t\t", pos, limit, pos*100/bsize);
             fflush(stdout);
             prand_fill_buffer(writer_buf, step_size);
             pread(fd, reader_buf, step_size, pos);
