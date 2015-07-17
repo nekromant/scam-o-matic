@@ -7,6 +7,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <inttypes.h>
+#include <errno.h>
 
 //#define MACOSX
 
@@ -83,6 +84,8 @@ int main(int argc, char *argv[])
     char buf[64];
     int k=4096;
     char* dev;
+    int ret;
+
     if (argc<2)
     {
         printf("Salvage a scammed device for usable space\n");
@@ -110,8 +113,19 @@ int main(int argc, char *argv[])
         return 1;
     }
     printf("Rock'n'roll, then!\n");
-    ioctl(fd, BLKGET64, &bsize);
-    ioctl(fd, BLKSECSZ, &blksize);
+
+    ret = ioctl(fd, BLKGET64, &bsize);
+    if (ret < 0) {
+        printf("Error getting the block device size: %d (%m)\n", errno);
+        return 1;
+    }
+
+    ret = ioctl(fd, BLKSECSZ, &blksize);
+    if (ret < 0) {
+        printf("Error getting the block device size: %d (%m)\n", errno);
+        return 1;
+    }
+
     printf("Device reports to be %" PRIu64 " bytes long.\n", bsize);
     printf("Sectors are presumably %u bytes each.\n", blksize);
     printf("!!!WARNING!!! Last chance to stop. Are you sure you want to go further?\n If so - type YES, anything else or ctrl+c either\n");
