@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <fcntl.h>
+#include <inttypes.h>
 
 //#define MACOSX
 
@@ -111,7 +112,7 @@ int main(int argc, char *argv[])
   printf("Rock'n'roll, then!\n");
   ioctl(fd, BLKGET64, &bsize);
   ioctl(fd, BLKSECSZ, &blksize);
-  printf("Device reports to be %llu bytes long.\n", bsize);
+  printf("Device reports to be %" PRIu64 " bytes long.\n", bsize);
   printf("Sectors are presumably %u bytes each.\n", blksize);
   printf("!!!WARNING!!! Last chance to stop. Are you sure you want to go further?\n If so - type YES, anything else or ctrl+c either\n");
   fgets(buf, sizeof(buf), stdin);
@@ -131,7 +132,7 @@ int main(int argc, char *argv[])
   
   while (pos < bsize ) 
   {
-   printf("\rTesting at position: %llu\t\t", pos );
+   printf("\rTesting at position: %" PRIu64 " (%" PRIu64 "%%)\t\t", pos, pos*100/bsize);
    fflush(stdout);
    prand_fill_buffer(writer_buf,k*blksize);
    pwrite(fd, writer_buf, k*blksize, pos);
@@ -141,7 +142,7 @@ int main(int argc, char *argv[])
    i = check_data(reader_buf,writer_buf,k*blksize);
    if (i >= 0)
    {
-     printf("\r\nMismatch at %llu detected\n",pos+i*4);
+     printf("\r\nMismatch at %" PRIu64 " detected\n",pos+i*4);
      scam=1;
      break;
    }
@@ -152,21 +153,21 @@ int main(int argc, char *argv[])
    {
      printf("Sorry, dude, but it look like you've been scammed.\n");
      printf("Or you might just have a old'n'corrupt card.\n");
-     printf("In case of scam you still have %llu usable bytes\n",pos+(i-1)*4);
+     printf("In case of scam you still have %" PRIu64 " usable bytes\n",pos+(i-1)*4);
      printf("That we can salvage. Let me double check the area for overwrites\n");
      limit = pos+(i-1)*4;
      pos =0;
      prandom_reset();
      while (pos<limit)
      {
-       printf("\rDouble checking at position: %llu/%llu\t\t", pos,limit );
+       printf("\rDouble checking at position: %" PRIu64 "/%" PRIu64 "\t\t", pos,limit );
        fflush(stdout);
        prand_fill_buffer(writer_buf,k*blksize);
        pread(fd, reader_buf, k*blksize, pos);
        i = check_data(reader_buf,writer_buf,k*blksize);
 	if (i >= 0 && (pos+i*4 < limit))
 	{
-	  printf("\r\nMismatch at %llu detected\n",pos+i*4);
+	  printf("\r\nMismatch at %" PRIu64 " detected\n",pos+i*4);
 	  scam=2;
 	  break;
 	}
