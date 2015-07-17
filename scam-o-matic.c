@@ -141,26 +141,27 @@ int main(int argc, char *argv[])
     uint64_t pos=0;
     int scam = 0;
     uint64_t limit;
-    uint32_t* writer_buf = malloc(k*blksize);
-    uint32_t* reader_buf = malloc(k*blksize);
+    const uint32_t step_size = k * blksize;
+    uint32_t* writer_buf = malloc(step_size);
+    uint32_t* reader_buf = malloc(step_size);
 
     while (pos < bsize)
     {
         printf("\rTesting at position: %" PRIu64 " (%" PRIu64 "%%)\t\t", pos, pos*100/bsize);
         fflush(stdout);
-        prand_fill_buffer(writer_buf, k*blksize);
-        pwrite(fd, writer_buf, k*blksize, pos);
+        prand_fill_buffer(writer_buf, step_size);
+        pwrite(fd, writer_buf, step_size, pos);
         //fsync(fd);
         ioctl(fd, FLUSHCACHE);
-        pread(fd, reader_buf, k*blksize, pos);
-        i = check_data(reader_buf,writer_buf,k*blksize);
+        pread(fd, reader_buf, step_size, pos);
+        i = check_data(reader_buf, writer_buf, step_size);
         if (i >= 0)
         {
             printf("\r\nMismatch at %" PRIu64 " detected\n",pos+i*4);
             scam=1;
             break;
         }
-        pos+=k*blksize;
+        pos += step_size;
         //write(fd, writer_buf, blksize);
     }
     if (scam)
@@ -176,16 +177,16 @@ int main(int argc, char *argv[])
         {
             printf("\rDouble checking at position: %" PRIu64 "/%" PRIu64 "\t\t", pos,limit );
             fflush(stdout);
-            prand_fill_buffer(writer_buf, k*blksize);
-            pread(fd, reader_buf, k*blksize, pos);
-            i = check_data(reader_buf, writer_buf, k*blksize);
+            prand_fill_buffer(writer_buf, step_size);
+            pread(fd, reader_buf, step_size, pos);
+            i = check_data(reader_buf, writer_buf, step_size);
             if (i >= 0 && (pos+i*4 < limit))
             {
                 printf("\r\nMismatch at %" PRIu64 " detected\n",pos+i*4);
                 scam=2;
                 break;
             }
-            pos += k*blksize;
+            pos += step_size;
         }
         if (scam==2)
         {
@@ -201,7 +202,7 @@ int main(int argc, char *argv[])
         printf("Card looks fine - have fun\n");
     }
     printf("Clearing first sector...\n");
-    bzero(writer_buf, k*blksize);
+    bzero(writer_buf, step_size);
     pwrite(fd, writer_buf, 512, 0);
     if (scam==1)
     {
