@@ -32,6 +32,10 @@
 static int start_s1, start_s2, start_s3, seed_init;
 static int s1, s2, s3;
 
+uint32_t* writer_buf;
+uint32_t* reader_buf;
+int bad_pos_in_buffer;
+
 void prandom_reset()
 {
     if (!seed_init) {
@@ -90,6 +94,63 @@ int check_data(uint32_t* a, uint32_t* b, size_t size)
     return -1;
 }
 
+int do_write(int fd, uint32_t cur_step_size, uint64_t pos)
+{
+    prand_fill_buffer(writer_buf, cur_step_size);
+    int ret = pwrite(fd, writer_buf, cur_step_size, pos);
+    if (ret < 0) {
+        printf("Error writing to device at pos %" PRIu64 ", errno=%d (%m)\n", pos, errno);
+        return -1;
+    }
+    if (ret != cur_step_size) {
+        printf("Failed to write the expected number of bytes at pos %" PRIu64 " tried to write %u but wrote %d\n",
+                pos, cur_step_size, ret);
+        return -1;
+    }
+    return 0;
+}
+
+int do_read_verify(int fd, uint32_t cur_step_size, uint64_t pos)
+{
+    int ret = pread(fd, reader_buf, cur_step_size, pos);
+    if (ret < 0) {
+        printf("Error reading from device at pos %" PRIu64 ", errno=%d (%m)\n", pos, errno);
+        return -1;
+    }
+    prand_fill_buffer(writer_buf, cur_step_size);
+    bad_pos_in_buffer = check_data(reader_buf, writer_buf, cur_step_size);
+    if (bad_pos_in_buffer >= 0)
+    {
+        printf("\r\nMismatch at %" PRIu64 " detected\n",pos + bad_pos_in_buffer*4);
+        return -1;
+    }
+
+    return 0;
+}
+
+int scan_device(int fd, uint32_t step_size, uint64_t bsize, const char *name, int (*cb)(int fd, uint32_t cur_step_size, uint64_t pos), uint64_t *err_pos)
+{
+    uint64_t pos = 0;
+
+    while (pos < bsize)
+    {
+        const uint32_t cur_step_size = (bsize - pos >= step_size) ? step_size : bsize - pos;
+
+        printf("\r%s at position: %" PRIu64 " (%" PRIu64 "%%)\t\t", name, pos, pos*100/bsize);
+        fflush(stdout);
+        int ret = cb(fd, cur_step_size, pos);
+        if (ret < 0) {
+            if (err_pos)
+                *err_pos = pos;
+            return -1;
+        }
+
+        pos += cur_step_size;
+    }
+
+    return 0;
+}
+
 int main(int argc, char *argv[])
 {
     uint64_t bsize;
@@ -99,6 +160,7 @@ int main(int argc, char *argv[])
     int k=4096;
     char* dev;
     int ret;
+    int scam = 0;
 
     if (argc<2)
     {
@@ -150,43 +212,34 @@ int main(int argc, char *argv[])
         return 1;
     }
     printf("Starting a destructive surface test\n");
-    prandom_reset();
-    int i;
-    uint64_t pos=0;
-    int scam = 0;
-    uint64_t limit;
     const uint32_t step_size = k * blksize;
-    uint32_t* writer_buf = malloc(step_size);
-    uint32_t* reader_buf = malloc(step_size);
+    writer_buf = malloc(step_size);
+    reader_buf = malloc(step_size);
 
-    while (pos < bsize)
-    {
-        const uint32_t cur_step_size = (bsize - pos >= step_size) ? step_size : bsize - pos;
-
-        printf("\rTesting at position: %" PRIu64 " (%" PRIu64 "%%)\t\t", pos, pos*100/bsize);
-        fflush(stdout);
-        prand_fill_buffer(writer_buf, cur_step_size);
-        pwrite(fd, writer_buf, cur_step_size, pos);
-        //fsync(fd);
-        ioctl(fd, FLUSHCACHE);
-        pread(fd, reader_buf, cur_step_size, pos);
-        i = check_data(reader_buf, writer_buf, cur_step_size);
-        if (i >= 0)
-        {
-            printf("\r\nMismatch at %" PRIu64 " detected\n",pos+i*4);
-            scam=1;
-            break;
-        }
-        pos += cur_step_size;
-        //write(fd, writer_buf, blksize);
+    prandom_reset();
+    ret = scan_device(fd, step_size, bsize, "Writing", do_write, NULL);
+    if (ret < 0) {
+        printf("Sorry but failing to write at all means the device is doomed (or you pulled it in the middle)!\n");
+        return 2;
     }
+
+    ioctl(fd, FLUSHCACHE);
+
+    prandom_reset();
+    uint64_t pos;
+    ret = scan_device(fd, step_size, bsize, "Verifying", do_read_verify, &pos);
+    if (ret != 0)
+        scam = 1;
+
+    uint64_t limit;
+
     if (scam)
     {
         printf("Sorry, dude, but it look like you've been scammed.\n");
         printf("Or you might just have a old'n'corrupt card.\n");
-        printf("In case of scam you still have %" PRIu64 " usable bytes\n",pos+(i-1)*4);
+        printf("In case of scam you still have %" PRIu64 " usable bytes\n",pos+(bad_pos_in_buffer-1)*4);
         printf("That we can salvage. Let me double check the area for overwrites\n");
-        limit = pos+(i-1)*4;
+        limit = pos + (bad_pos_in_buffer-1) * 4;
         pos =0;
         prandom_reset();
         while (pos<limit)
@@ -195,7 +248,7 @@ int main(int argc, char *argv[])
             fflush(stdout);
             prand_fill_buffer(writer_buf, step_size);
             pread(fd, reader_buf, step_size, pos);
-            i = check_data(reader_buf, writer_buf, step_size);
+            int i = check_data(reader_buf, writer_buf, step_size);
             if (i >= 0 && (pos+i*4 < limit))
             {
                 printf("\r\nMismatch at %" PRIu64 " detected\n",pos+i*4);
@@ -217,9 +270,11 @@ int main(int argc, char *argv[])
     {
         printf("Card looks fine - have fun\n");
     }
+
     printf("Clearing first sector...\n");
     bzero(writer_buf, step_size);
     pwrite(fd, writer_buf, 512, 0);
+
     if (scam==1)
     {
         printf("Would you like me to run fdisk and\n");
