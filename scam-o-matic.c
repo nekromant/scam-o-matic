@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <inttypes.h>
 #include <errno.h>
+#include <time.h>
 
 //#define MACOSX
 
@@ -28,14 +29,28 @@
 
 /* shamelessly ripped from linux kernel */
 
+static int start_s1, start_s2, start_s3, seed_init;
 static int s1, s2, s3;
-
 
 void prandom_reset()
 {
-    s1 = 100;
-    s2 = 200;
-    s3 = 300;
+    if (!seed_init) {
+        start_s1 = time(NULL);
+        start_s2 = 200;
+        start_s3 = 300;
+        seed_init = 1;
+
+        int fd = open("/dev/urandom", O_RDONLY);
+        if (fd >= 0) {
+            read(fd, &start_s2, sizeof(start_s2));
+            read(fd, &start_s3, sizeof(start_s3));
+            close(fd);
+        }
+    }
+
+    s1 = start_s1;
+    s2 = start_s2;
+    s3 = start_s3;
 }
 
 uint32_t prandom32()
